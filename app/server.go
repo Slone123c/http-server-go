@@ -34,16 +34,31 @@ func main() {
 	if err != nil {
 		return
 	}
+	// Check for the GET /user-agent HTTP/1.1 request
 	if strings.HasPrefix(string(buf), "GET /user-agent HTTP/1.1") {
+		// Split the request into lines
 		res := strings.Split(string(buf), "\n")
-		usetAgent := strings.Split(res[3], ":")[1]
-		resp := fmt.Sprintf("HTTP/1."+
-			"1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n"+
-			"\r\n%s", len(usetAgent), usetAgent)
+
+		// Check if the User-Agent line is present
+		userAgent := "User-Agent not found"
+		for _, line := range res {
+			if strings.HasPrefix(line, "User-Agent:") {
+				parts := strings.SplitN(line, ": ", 2)
+				if len(parts) == 2 {
+					userAgent = parts[1]
+				}
+				break
+			}
+		}
+
+		// Create the response
+		resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)
 		conn.Write([]byte(resp))
 	} else if strings.HasPrefix(string(buf), "GET / HTTP/1.1") {
+		// Respond to the root request
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 	} else {
+		// Respond with 404 for other requests
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
 }
