@@ -34,7 +34,6 @@ func main() {
 	if err != nil {
 		return
 	}
-	//fmt.Println("buf:", string(buf))
 	if strings.HasPrefix(string(buf), "GET /echo/") {
 		res := strings.Split(string(buf), "\n")
 		url := strings.Split(res[0], " ")[1]
@@ -45,6 +44,6 @@ func main() {
 			"\r\n%s", contentLen, content)
 		conn.Write([]byte(resp))
 	} else {
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 	}
 }
