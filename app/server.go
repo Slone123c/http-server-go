@@ -53,8 +53,8 @@ func main() {
 	} else if strings.HasPrefix(requestLine, "GET /echo/") {
 		// Handle echo request
 		message := strings.TrimPrefix(requestLine, "GET /echo/")
-		message = strings.TrimSuffix(message, " HTTP/1.1")
 		message = strings.TrimSpace(message)
+		message = strings.TrimSuffix(message, " HTTP/1.1")
 		resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)
 		conn.Write([]byte(resp))
 	} else if strings.HasPrefix(requestLine, "GET / HTTP/1.1") {
