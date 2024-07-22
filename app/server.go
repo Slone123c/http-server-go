@@ -34,11 +34,9 @@ func main() {
 	if err != nil {
 		return
 	}
-	if strings.HasPrefix(string(buf), "GET /abcdefg HTTP/1.1") {
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-	}
 	if strings.HasPrefix(string(buf), "GET / HTTP/1.1") {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-
+	} else {
+		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
 }
