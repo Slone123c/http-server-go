@@ -44,7 +44,7 @@ func main() {
 			"\r\n%s", contentLen, content)
 		conn.Write([]byte(resp))
 	} else if strings.HasPrefix(string(buf), "GET / HTTP/1.1") {
-
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 	} else {
 
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
