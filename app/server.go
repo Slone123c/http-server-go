@@ -34,12 +34,10 @@ func main() {
 	if err != nil {
 		return
 	}
-	// Check for the GET /user-agent HTTP/1.1 request
-	if strings.HasPrefix(string(buf), "GET /user-agent HTTP/1.1") {
-		// Split the request into lines
+	requestLine := strings.SplitN(string(buf), "\n", 2)[0]
+	if strings.HasPrefix(requestLine, "GET /user-agent HTTP/1.1") {
+		// Handle user-agent request
 		res := strings.Split(string(buf), "\n")
-
-		// Check if the User-Agent line is present
 		userAgent := "User-Agent not found"
 		for _, line := range res {
 			if strings.HasPrefix(line, "User-Agent:") {
@@ -50,11 +48,16 @@ func main() {
 				break
 			}
 		}
-
-		// Create the response
 		resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)
 		conn.Write([]byte(resp))
-	} else if strings.HasPrefix(string(buf), "GET / HTTP/1.1") {
+	} else if strings.HasPrefix(requestLine, "GET /echo/") {
+		// Handle echo request
+		message := strings.TrimPrefix(requestLine, "GET /echo/")
+		message = strings.TrimSuffix(message, " HTTP/1.1")
+		message = strings.TrimSpace(message)
+		resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)
+		conn.Write([]byte(resp))
+	} else if strings.HasPrefix(requestLine, "GET / HTTP/1.1") {
 		// Respond to the root request
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 	} else {
