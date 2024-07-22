@@ -45,7 +45,7 @@ func main() {
 			if strings.HasPrefix(line, "User-Agent:") {
 				parts := strings.SplitN(line, ": ", 2)
 				if len(parts) == 2 {
-					userAgent = parts[1]
+					userAgent = strings.TrimSpace(parts[1])
 				}
 				break
 			}
