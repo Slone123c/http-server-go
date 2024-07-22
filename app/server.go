@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	// Uncomment this block to pass the first stage
 	// "net"
 	// "os"
@@ -28,6 +29,16 @@ func main() {
 	}
 	defer conn.Close()
 
-	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	buf := make([]byte, 1024)
+	_, err = conn.Read(buf)
+	if err != nil {
+		return
+	}
+	if strings.HasPrefix(string(buf), "GET /abcdefg HTTP/1.1") {
+		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+	}
+	if strings.HasPrefix(string(buf), "GET / HTTP/1.1") {
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 
+	}
 }
