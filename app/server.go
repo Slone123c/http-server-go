@@ -1,15 +1,23 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
 	"strings"
 )
 
+var directory string
+
+func init() {
+	flag.StringVar(&directory, "directory", "", "Specify the directory to use")
+}
+
 // The main function is the entry point of the program.
 // It sets up a TCP listener on port 4221 and handles incoming connections.
 func main() {
+	flag.Parse()
 	fmt.Println("Logs from your program will appear here!")
 
 	// Listen for incoming TCP connections on all available network interfaces using port 4221.
@@ -82,6 +90,20 @@ func handleConnection(conn net.Conn) {
 		// Respond to the root request
 		// Send a simple HTTP 200 OK response for the root path.
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	} else if strings.HasPrefix(requestLine, "GET /files/") {
+		fileName := strings.TrimPrefix(requestLine, "GET /files/")
+		fileName = strings.TrimSpace(fileName)
+		fileName = strings.TrimSuffix(fileName, " HTTP/1.1")
+
+		filePath := directory + fileName
+		fmt.Println("file:", filePath)
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+			return
+		}
+		resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)
+		conn.Write([]byte(resp))
 	} else {
 		// Respond with 404 for other requests
 		// Send a HTTP 404 Not Found response for unhandled paths.
