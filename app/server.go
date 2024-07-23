@@ -19,20 +19,33 @@ func main() {
 		fmt.Println("Failed to bind to port 4221")
 		os.Exit(1)
 	}
+	defer l.Close()
+
+	fmt.Println("Server is listening on port 4221")
 
 	// Accept a new incoming connection.
-	conn, err := l.Accept()
-	if err != nil {
-		// If accepting the connection fails, print an error message and exit the program.
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			// If accepting the connection fails,
+			//print an error message and continue.
+			fmt.Println("Error accepting connection: ", err.Error())
+			continue
+		}
+		// Handle the connection concurrently using a Goroutine.
+		go handleConnection(conn)
 	}
+
+}
+
+// The handleConnection function handles an individual connection.
+func handleConnection(conn net.Conn) {
 	defer conn.Close() // Ensure the connection is closed when the function completes.
 
 	// Create a buffer to store the incoming data.
 	buf := make([]byte, 1024)
 	// Read the incoming data into the buffer.
-	_, err = conn.Read(buf)
+	_, err := conn.Read(buf)
 	if err != nil {
 		// If reading fails, exit the function.
 		return
