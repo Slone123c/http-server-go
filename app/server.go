@@ -53,20 +53,70 @@ func handleConnection(conn net.Conn) {
 	// Create a buffer to store the incoming data.
 	buf := make([]byte, 1024)
 	// Read the incoming data into the buffer.
-	_, err := conn.Read(buf)
+	n, err := conn.Read(buf)
 	if err != nil {
 		// If reading fails, exit the function.
 		return
 	}
 
-	// Parse the first line of the request to determine the handling logic.
-	requestLine := strings.SplitN(string(buf), "\n", 2)[0]
+	req := strings.SplitN(string(buf[:n]), "\r\n", -1)
+	requestLine := strings.SplitN(req[0], " ", 3)
+	method := requestLine[0]
+	path := requestLine[1]
+
+	fmt.Println("directory:", directory)
+	fmt.Println("path:", path)
+	if method == "GET" {
+		handleGetMethod(conn, path, req)
+	} else if method == "POST" {
+		data := req[len(req)-1]
+		handlePostMethod(conn, path, data)
+	}
+
+}
+
+func handlePostMethod(conn net.Conn, reqPath string, data string) {
+	path := strings.Split(reqPath, "/")
+	if path[1] == "files" {
+		fileName := path[2]
+		fileFullPath := directory + "/" + fileName
+
+		fmt.Println("fullPath:", fileFullPath)
+		fmt.Println("dir:", directory)
+
+		if _, err := os.Stat(directory); os.IsNotExist(err) {
+			err := os.MkdirAll(directory, 0755)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		file, err := os.Create(fileFullPath)
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+
+		err = os.WriteFile(fileFullPath, []byte(data), 0644)
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = file.WriteString(data)
+		if err != nil {
+			panic(err)
+		}
+		resp := fmt.Sprintf("HTTP/1.1 201 Created\r\n\r\n")
+		conn.Write([]byte(resp))
+	}
+}
+
+func handleGetMethod(conn net.Conn, path string, req []string) {
 	// Handle the request based on the request line.
-	if strings.HasPrefix(requestLine, "GET /user-agent HTTP/1.1") {
+	if path == "/user-agent" {
 		// Handle user-agent request
-		res := strings.Split(string(buf), "\n")
 		userAgent := "User-Agent not found"
-		for _, line := range res {
+		for _, line := range req {
 			if strings.HasPrefix(line, "User-Agent:") {
 				parts := strings.SplitN(line, ": ", 2)
 				if len(parts) == 2 {
@@ -78,25 +128,21 @@ func handleConnection(conn net.Conn) {
 		// Construct and send the response containing the user-agent information.
 		resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)
 		conn.Write([]byte(resp))
-	} else if strings.HasPrefix(requestLine, "GET /echo/") {
+	} else if strings.HasPrefix(path, "/echo/") {
 		// Handle echo request
-		message := strings.TrimPrefix(requestLine, "GET /echo/")
+		message := strings.TrimPrefix(path, "/echo/")
 		message = strings.TrimSpace(message)
-		message = strings.TrimSuffix(message, " HTTP/1.1")
 		// Construct and send the response containing the echoed message.
 		resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)
 		conn.Write([]byte(resp))
-	} else if strings.HasPrefix(requestLine, "GET / HTTP/1.1") {
+	} else if path == "/" {
 		// Respond to the root request
 		// Send a simple HTTP 200 OK response for the root path.
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	} else if strings.HasPrefix(requestLine, "GET /files/") {
-		fileName := strings.TrimPrefix(requestLine, "GET /files/")
-		fileName = strings.TrimSpace(fileName)
-		fileName = strings.TrimSuffix(fileName, " HTTP/1.1")
-
+	} else if strings.HasPrefix(path, "/files/") {
+		// Handle file request
+		fileName := strings.TrimPrefix(path, "/files/")
 		filePath := directory + fileName
-		fmt.Println("file:", filePath)
 		content, err := os.ReadFile(filePath)
 		if err != nil {
 			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
