@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"flag"
 	"fmt"
 	"net"
@@ -149,7 +151,11 @@ func handleGetMethod(conn net.Conn, path string, req []string) {
 		// Construct and send the response containing the echoed message.
 		var resp string
 		if encoding == "gzip" {
-			resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: %d\r\n\r\n%s", len(message), message)
+			message, _ = gzipCompress(message)
+			resp = fmt.Sprintf("HTTP/1."+
+				"1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding"+
+				": gzip\r\nContent-Length: %d\r\n\r\n%s", len(message),
+				message)
 		} else {
 			resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)
 		}
@@ -175,4 +181,17 @@ func handleGetMethod(conn net.Conn, path string, req []string) {
 		// Send a HTTP 404 Not Found response for unhandled paths.
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
+}
+
+func gzipCompress(data string) (string, error) {
+	var buf bytes.Buffer
+	gzw := gzip.NewWriter(&buf)
+	_, err := gzw.Write([]byte(data))
+	if err != nil {
+		return "", err
+	}
+	if err = gzw.Close(); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
