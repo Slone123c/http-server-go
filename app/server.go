@@ -118,6 +118,9 @@ func handleGetMethod(conn net.Conn, path string, req []string) {
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) == 2 {
 				encoding = strings.TrimSpace(parts[1])
+				if strings.Contains(encoding, "gzip") {
+					encoding = "gzip"
+				}
 			}
 		}
 	}
