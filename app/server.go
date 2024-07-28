@@ -112,7 +112,17 @@ func handlePostMethod(conn net.Conn, reqPath string, data string) {
 }
 
 func handleGetMethod(conn net.Conn, path string, req []string) {
+	encoding := ""
+	for _, line := range req {
+		if strings.HasPrefix(line, "Accept-Encoding") {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				encoding = strings.TrimSpace(parts[1])
+			}
+		}
+	}
 	// Handle the request based on the request line.
+
 	if path == "/user-agent" {
 		// Handle user-agent request
 		userAgent := "User-Agent not found"
@@ -124,6 +134,7 @@ func handleGetMethod(conn net.Conn, path string, req []string) {
 				}
 				break
 			}
+
 		}
 		// Construct and send the response containing the user-agent information.
 		resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)
@@ -133,8 +144,14 @@ func handleGetMethod(conn net.Conn, path string, req []string) {
 		message := strings.TrimPrefix(path, "/echo/")
 		message = strings.TrimSpace(message)
 		// Construct and send the response containing the echoed message.
-		resp := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)
+		var resp string
+		if encoding == "gzip" {
+			resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: %d\r\n\r\n%s", len(message), message)
+		} else {
+			resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)
+		}
 		conn.Write([]byte(resp))
+
 	} else if path == "/" {
 		// Respond to the root request
 		// Send a simple HTTP 200 OK response for the root path.
